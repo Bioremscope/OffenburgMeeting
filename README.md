@@ -3,7 +3,7 @@
 An interactive companion to the poster *Prediction of PAH Degradation in
 Bioremediation Research: A Rule-Based Cheminformatics Analysis*.
 
-Open it here: **https://bioremscope.github.io/REPO-NAME/**
+Open it here: **https://bioremscope.github.io/OffenburgMeeting/**
 
 ## What it shows
 
