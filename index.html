@@ -128,14 +128,14 @@ svg.mol ellipse{opacity:.2}
    identities: they never change with the page theme. Only canvas, labels and
    edges follow it. */
 const GRASS = {
-  hub:      { color: '#D64545', size: 50 },
-  pah:      { color: '#D64545', size: 34 },
-  met_pred: { color: '#F2A9A0', size: 26 },
-  met_kegg: { color: '#E8837A', size: 30 },
-  enzyme:   { color: '#9575B8', size: 28 },
-  genus:    { color: '#57A773', size: 28 },
-  organism: { color: '#8FC99C', size: 26 },
-  more:     { color: '#A5ABB6', size: 24 },
+  hub:      { color: '#D64545', size: 62 },
+  pah:      { color: '#D64545', size: 46 },
+  met_pred: { color: '#F2A9A0', size: 34 },
+  met_kegg: { color: '#E8837A', size: 40 },
+  enzyme:   { color: '#9575B8', size: 38 },
+  genus:    { color: '#57A773', size: 36 },
+  organism: { color: '#8FC99C', size: 34 },
+  more:     { color: '#A5ABB6', size: 32 },
 };
 const LEGEND = [
   ['pah', 'PAH'], ['met_pred', 'Predicted'], ['met_kegg', 'In KEGG'],
@@ -144,7 +144,7 @@ const LEGEND = [
 const FIRST_GEN_CAP = 12;   // 20 products at 390px pushes labels below legibility
 const CHILD_CAP = 6;
 const ORGANISM_CAP = 12;
-const Z_MIN = 0.62, Z_MAX = 1.2;
+const Z_MIN = 0.72, Z_MAX = 1.9;
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const v = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -177,24 +177,43 @@ const nid = (parent, kind, key) => kind + '|' + parent + '|' + key;
    direction their parent was itself placed in, so a branch grows outward and
    never back over its own trunk. Two nodes D radians apart on radius r are
    2r·sin(D/2) apart, so requiring that to clear SEP fixes the radius. */
-const SEP = 76, R_MIN = 112, R_MAX = 240, RING_GAP = 52;
+const SEP = 86, R_MIN = 104, R_MAX = 200, RING_GAP = 54, JITTER = 18;
+
+/* Deterministic stand-in for randomness. The distances want to look casual
+   rather than machine-drawn, but they must be identical every time the same
+   node is opened, or a collapse and re-open would visibly rearrange the graph
+   while someone is looking at it. */
+function jitter01(seed, i) {
+  let h = 2166136261;
+  const s = seed + '#' + i;
+  for (let k = 0; k < s.length; k++) { h ^= s.charCodeAt(k); h = Math.imul(h, 16777619); }
+  return ((h >>> 0) % 1000) / 1000;
+}
 
 function fan(origin, axis, n, opts) {
   opts = opts || {};
   const span = opts.span !== undefined ? opts.span : Math.PI * 1.15;
   const full = span >= Math.PI * 1.99;
+  const seed = opts.seed || '';
+  const jit = opts.jitter === undefined ? JITTER : opts.jitter;
+  const at = (a, r, i) => {
+    const rr = r + (jitter01(seed, i) - 0.5) * 2 * jit;
+    return { x: origin.x + rr * Math.cos(a), y: origin.y + rr * Math.sin(a), a };
+  };
   if (n <= 0) return [];
-  if (n === 1) return [{ x: origin.x + R_MIN * Math.cos(axis), y: origin.y + R_MIN * Math.sin(axis), a: axis }];
+  if (n === 1) return [at(axis, opts.minR || R_MIN, 0)];
   const step = full ? span / n : span / (n - 1);
   const stagger = n > 6;
-  const sep = Math.min(stagger ? step : step / 2, Math.PI / 2);
-  let r0 = Math.min(Math.max((opts.sep || SEP) / (2 * Math.sin(sep)), opts.minR || R_MIN), R_MAX);
+  // Two nodes D radians apart on radius r are 2·r·sin(D/2) apart. Staggering
+  // puts alternate nodes on an outer ring, so same-ring neighbours are 2·step
+  // apart and the ring can close in without the captions touching.
+  const eff = Math.min(stagger ? 2 * step : step, Math.PI);
+  const r0 = Math.min(Math.max((opts.sep || SEP) / (2 * Math.sin(eff / 2)),
+                               opts.minR || R_MIN), opts.maxR || R_MAX);
   const start = full ? axis : axis - span / 2;
   const out = [];
   for (let i = 0; i < n; i++) {
-    const a = start + i * step;
-    const r = r0 + (stagger && (i % 2) ? RING_GAP : 0);
-    out.push({ x: origin.x + r * Math.cos(a), y: origin.y + r * Math.sin(a), a });
+    out.push(at(start + i * step, r0 + (stagger && (i % 2) ? RING_GAP : 0), i));
   }
   return out;
 }
@@ -224,21 +243,21 @@ function styleJson() {
     { selector: 'node', style: {
         'background-color': 'data(color)', 'width': 'data(size)', 'height': 'data(size)',
         'label': 'data(label)', 'color': ink,
-        'font-family': 'IBM Plex Sans, system-ui, sans-serif', 'font-size': 11,
+        'font-family': 'IBM Plex Sans, system-ui, sans-serif', 'font-size': 14,
         'font-weight': 500, 'text-valign': 'bottom', 'text-margin-y': 4,
-        'text-wrap': 'wrap', 'text-max-width': 78, 'min-zoomed-font-size': 6,
-        'text-outline-width': 2.5, 'text-outline-color': canvas,
+        'text-wrap': 'wrap', 'text-max-width': 96, 'min-zoomed-font-size': 5,
+        'text-outline-width': 3, 'text-outline-color': canvas,
         'text-events': 'yes',                      // the label is part of the tap target
         'border-width': 2, 'border-color': canvas, 'overlay-opacity': 0 } },
-    { selector: 'node[kind="hub"]', style: { 'font-size': 13, 'font-weight': 600 } },
-    { selector: 'node[kind="pah"]', style: { 'font-size': 12, 'font-weight': 600 } },
-    { selector: 'node[mono=1]', style: { 'font-family': 'IBM Plex Mono, ui-monospace, monospace', 'font-size': 10 } },
+    { selector: 'node[kind="hub"]', style: { 'font-size': 16, 'font-weight': 600 } },
+    { selector: 'node[kind="pah"]', style: { 'font-size': 15, 'font-weight': 600 } },
+    { selector: 'node[mono=1]', style: { 'font-family': 'IBM Plex Mono, ui-monospace, monospace', 'font-size': 12 } },
     { selector: 'node[italic=1]', style: { 'font-style': 'italic' } },
-    { selector: 'node[kind="more"]', style: { 'shape': 'round-rectangle', 'font-size': 10 } },
+    { selector: 'node[kind="more"]', style: { 'shape': 'round-rectangle', 'font-size': 12 } },
     { selector: 'node[?expandable]', style: { 'border-color': edge } },
     { selector: 'node.focus', style: { 'border-width': 4, 'border-color': accent } },
     { selector: 'edge', style: {
-        'width': 1.5, 'curve-style': 'straight', 'line-color': edge, 'opacity': 0.85 } },
+        'width': 2, 'curve-style': 'straight', 'line-color': edge, 'opacity': 0.85 } },
     { selector: 'edge[weak=1]', style: { 'line-color': dim, 'line-style': 'dashed' } },
   ];
 }
@@ -332,7 +351,7 @@ function expand(node, opts) {
       '+' + hidden + ' more' + (unrecognised === hidden ? '\n(0 in KEGG)' : ''),
       { expandable: 1, opens: id }));
   }
-  const pos = fan(origin, axis, defs.length, opts);
+  const pos = fan(origin, axis, defs.length, Object.assign({ seed: id }, opts));
 
   const add = [];
   defs.forEach((d, i) => {
@@ -479,8 +498,8 @@ function init(elements, onNodeTap, floor) {
     autoungrabify: true,
     autounselectify: true,
     boxSelectionEnabled: false,
-    minZoom: 0.4,
-    maxZoom: 1.6,
+    minZoom: 0.35,
+    maxZoom: 4,
     touchTapThreshold: 10,
   });
   cy.on('tap', 'node', e => onNodeTap(e.target));
@@ -496,7 +515,7 @@ function renderIndex() {
 
   const els = [Object.assign(def('hub', 'hub', '16 EPA PAHs', {}), { position: { x: 0, y: 0 } })];
   const pos = fan({ x: 0, y: 0 }, -Math.PI / 2, INDEX.pahs.length,
-                  { span: Math.PI * 2, minR: 150, sep: 62 });
+                  { span: Math.PI * 2, minR: 130, maxR: 184, sep: 74, seed: 'hub' });
   INDEX.pahs.forEach((p, i) => {
     const id = 'pah|' + p.slug;
     els.push(Object.assign(def(id, 'pah', p.name, { slug: p.slug }),
@@ -525,7 +544,7 @@ async function renderPah(slug) {
                              { position: { x: 0, y: 0 } });
   init([root], tapToToggle, 0.55);
   const node = cy.getElementById(rootId);
-  expand(node, { axis: -Math.PI / 2, span: Math.PI * 1.25 });
+  expand(node, { axis: -Math.PI / 2, span: Math.PI * 2 });
   cy.nodes().ungrabify();
   open.add(rootId);
   node.addClass('focus');
@@ -556,7 +575,8 @@ function toggleObserved(btn) {
   }
   const list = all.slice(0, ORGANISM_CAP);
   const root = cy.getElementById(rootId);
-  const pos = fan(root.position(), Math.PI / 2, list.length, { span: Math.PI * 1.1, minR: 150 });
+  const pos = fan(root.position(), Math.PI / 2, list.length,
+                  { span: Math.PI * 1.1, minR: 150, maxR: 210, seed: 'lab' });
   const add = [];
   list.forEach((g, i) => {
     const id = nid(rootId, 'org', g.genus);
