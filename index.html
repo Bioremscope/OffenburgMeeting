@@ -77,14 +77,14 @@ body{
   position:absolute; top:10px; left:10px; z-index:5; cursor:pointer;
   background:color-mix(in srgb, var(--card) 93%, transparent);
   border:1px solid var(--line); border-radius:11px; padding:9px 11px 7px;
-  max-width:min(70%, 270px); backdrop-filter:blur(6px);
+  max-width:min(80%, 330px); backdrop-filter:blur(6px);
   box-shadow:0 2px 12px rgba(0,0,0,.09);
 }
-.structcard .nm{font:600 14px/1.25 var(--body); margin-bottom:1px; display:block}
-.structcard .fm{font:500 13px/1.3 var(--mono); color:var(--muted); display:block}
+.structcard .nm{font:600 15.5px/1.25 var(--body); margin-bottom:2px; display:block}
+.structcard .fm{font:500 14.5px/1.3 var(--mono); color:var(--muted); display:block}
 .structcard .fm sub{font-size:.72em}
-.structcard svg.mol{width:100%; height:112px; display:block; margin-top:2px; color:var(--ink)}
-.structcard .iso{font-size:11.5px; color:var(--accent); font-weight:500; display:block; margin-top:2px}
+.structcard svg.mol{width:100%; height:164px; display:block; margin-top:3px; color:var(--ink)}
+.structcard .iso{font-size:12.5px; color:var(--accent); font-weight:500; display:block; margin-top:3px}
 html,body{overscroll-behavior-y:contain}
 
 /* ── hint + sheet ─────────────────────────────────────── */
@@ -109,10 +109,10 @@ html,body{overscroll-behavior-y:contain}
 .sheet .mono{font-family:var(--mono); font-size:13.5px; color:var(--muted)}
 .sheet svg.mol{width:132px; height:100px; float:right; margin:0 0 6px 10px; color:var(--ink)}
 .isostrip{display:flex; gap:7px; overflow-x:auto; padding:3px 0 6px; margin-top:4px}
-.isostrip figure{margin:0; flex:none; width:82px; border:1px solid var(--line);
+.isostrip figure{margin:0; flex:none; width:98px; border:1px solid var(--line);
   border-radius:8px; padding:3px; background:var(--canvas)}
 .isostrip figure.on{border-color:var(--accent); border-width:2px; padding:2px}
-.isostrip svg.mol{width:100%; height:58px; float:none; margin:0; color:var(--ink)}
+.isostrip svg.mol{width:100%; height:72px; float:none; margin:0; color:var(--ink)}
 .isostrip figcaption{font:500 10px/1.1 var(--mono); color:var(--muted); text-align:center; padding-top:2px}
 .isostrip figure.on figcaption{color:var(--accent)}
 svg.mol path{stroke-width:2; stroke-linecap:butt; stroke-linejoin:miter; fill-rule:evenodd}
@@ -367,12 +367,10 @@ function isomers(s) {
 function metDef(parentId, s) {
   const childCount = P.steps.filter(k => k.parent_id === s.product_id).length;
   const sibs = isomers(s);
-  const rank = sibs.indexOf(s) + 1;
-  const caption = s.in_kegg ? (s.kegg_name || s.product_id)
-    : formulaSub(s.formula || '?') + (sibs.length > 1 ? '\n' + rank + ' of ' + sibs.length : '');
+  const caption = s.in_kegg ? (s.kegg_name || s.product_id) : formulaSub(s.formula || '?');
   return def(nid(parentId, 'met', s.product_id), 'met', caption, {
     in_kegg: s.in_kegg ? 1 : 0, mono: s.in_kegg ? 0 : 1,
-    iso_n: sibs.length, iso_i: rank,
+    iso_n: sibs.length,
     product_id: s.product_id, generation: s.generation, rule_name: s.rule_name,
     parent_pid: s.parent_id,
     formula: s.formula || '', svg: s.svg || '', kegg_name: s.kegg_name || '',
@@ -555,7 +553,7 @@ function structCard(node) {
     svg = d.svg;
     name = d.in_kegg ? (d.kegg_name || '') : 'Predicted metabolite';
     formula = d.formula;
-    if (d.iso_n > 1) iso = 'Isomer ' + d.iso_i + ' of ' + d.iso_n + ' with this formula';
+    if (d.iso_n > 1) iso = 'One of ' + d.iso_n + ' isomers sharing this formula';
   } else { box.hidden = true; box.innerHTML = ''; return; }
   if (!svg) { box.hidden = true; box.innerHTML = ''; return; }
   box.innerHTML = (name ? `<span class="nm">${esc(name)}</span>` : '')
@@ -602,8 +600,8 @@ function sheet(node) {
          ${sibs.length} ring positions the engine could attack, and they differ only in
          where the oxygen went.</p>
       <div class="isostrip">${sibs.map((k, i) =>
-        `<figure class="${k.product_id === d.product_id ? 'on' : ''}">${k.svg}
-           <figcaption>${i + 1}</figcaption></figure>`).join('')}</div>` : '';
+        `<figure class="${k.product_id === d.product_id ? 'on' : ''}">${k.svg}</figure>`
+        ).join('')}</div>` : '';
     body = head(d.in_kegg ? esc(d.kegg_name || d.formula) : formulaHtml(d.formula),
                 'Predicted metabolite · generation ' + d.generation)
       + `<p class="mono">${esc(d.rule_name)}</p><div class="badges">${badges}</div>`
