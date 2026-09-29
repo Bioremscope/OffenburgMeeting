@@ -68,8 +68,23 @@ body{
 .legend i{width:18px; height:18px; border-radius:50%; flex:none}
 
 /* ── graph ────────────────────────────────────────────── */
-#cy{flex:1; min-height:0; background:var(--canvas);
+.stage{flex:1; min-height:0; position:relative}
+#cy{position:absolute; inset:0; background:var(--canvas);
   touch-action:none; overscroll-behavior:contain; -webkit-tap-highlight-color:transparent}
+/* The structure is the thing a chemist actually reads, so it gets the empty
+   space at the top of the canvas rather than a corner of the sheet. */
+.structcard{
+  position:absolute; top:10px; left:10px; z-index:5; cursor:pointer;
+  background:color-mix(in srgb, var(--card) 93%, transparent);
+  border:1px solid var(--line); border-radius:11px; padding:9px 11px 7px;
+  max-width:min(70%, 270px); backdrop-filter:blur(6px);
+  box-shadow:0 2px 12px rgba(0,0,0,.09);
+}
+.structcard .nm{font:600 14px/1.25 var(--body); margin-bottom:1px; display:block}
+.structcard .fm{font:500 13px/1.3 var(--mono); color:var(--muted); display:block}
+.structcard .fm sub{font-size:.72em}
+.structcard svg.mol{width:100%; height:112px; display:block; margin-top:2px; color:var(--ink)}
+.structcard .iso{font-size:11.5px; color:var(--accent); font-weight:500; display:block; margin-top:2px}
 html,body{overscroll-behavior-y:contain}
 
 /* ── hint + sheet ─────────────────────────────────────── */
@@ -93,6 +108,13 @@ html,body{overscroll-behavior-y:contain}
 .sheet p:last-child{margin-bottom:0}
 .sheet .mono{font-family:var(--mono); font-size:13.5px; color:var(--muted)}
 .sheet svg.mol{width:132px; height:100px; float:right; margin:0 0 6px 10px; color:var(--ink)}
+.isostrip{display:flex; gap:7px; overflow-x:auto; padding:3px 0 6px; margin-top:4px}
+.isostrip figure{margin:0; flex:none; width:82px; border:1px solid var(--line);
+  border-radius:8px; padding:3px; background:var(--canvas)}
+.isostrip figure.on{border-color:var(--accent); border-width:2px; padding:2px}
+.isostrip svg.mol{width:100%; height:58px; float:none; margin:0; color:var(--ink)}
+.isostrip figcaption{font:500 10px/1.1 var(--mono); color:var(--muted); text-align:center; padding-top:2px}
+.isostrip figure.on figcaption{color:var(--accent)}
 svg.mol path{stroke-width:2; stroke-linecap:butt; stroke-linejoin:miter; fill-rule:evenodd}
 svg.mol ellipse{opacity:.2}
 .badges{display:flex; flex-wrap:wrap; gap:5px; margin:8px 0}
@@ -114,7 +136,7 @@ svg.mol ellipse{opacity:.2}
 </div>
 
 <div class="legend" id="legend"></div>
-<div id="cy"></div>
+<div class="stage"><div id="cy"></div><div class="structcard" id="structcard" hidden></div></div>
 <div class="hint" id="hint">Tap a node to open it. Tap it again to close.</div>
 <div class="sheet" id="sheet"><p class="loading">Loading the snapshot…</p></div>
 
@@ -293,7 +315,7 @@ function styleJson() {
         'border-width': 2, 'border-color': canvas, 'overlay-opacity': 0 } },
     { selector: 'node[kind="hub"]', style: { 'font-size': 16, 'font-weight': 600 } },
     { selector: 'node[kind="pah"]', style: { 'font-size': 15, 'font-weight': 600 } },
-    { selector: 'node[mono=1]', style: { 'font-family': 'IBM Plex Mono, ui-monospace, monospace', 'font-size': 12 } },
+    { selector: 'node[mono=1]', style: { 'font-family': 'IBM Plex Mono, ui-monospace, monospace', 'font-size': 14 } },
     { selector: 'node[italic=1]', style: { 'font-style': 'italic' } },
     { selector: 'node[kind="more"]', style: { 'shape': 'round-rectangle', 'font-size': 12 } },
     { selector: 'node[wide=1]', style: { 'text-max-width': 80 } },
@@ -325,12 +347,34 @@ function def(id, kind, label, extra) {
 }
 
 /* ── what opening a node reveals ──────────────────────────────────────── */
+/* C20H12O is not a formula a chemist reads, it is a string. Node captions are
+   canvas text, so they get Unicode subscripts; the sheet gets real <sub>. */
+const SUBS = { '0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉' };
+const formulaSub = f => String(f || '').replace(/\d/g, d => SUBS[d]);
+const formulaHtml = f => esc(String(f || '')).replace(/(\d+)/g, '<sub>$1</sub>');
+
+/* The engine attacks every available ring position, so one parent can yield a
+   dozen products sharing a formula — benzo[b]fluoranthene gives twelve C20H12O.
+   Labelled by formula alone they read as twelve copies of the same thing, when
+   they are twelve different places the oxygen went. Numbering them says how many
+   there are; the structure card shows what differs. */
+function isomers(s) {
+  return P.steps.filter(k => k.generation === s.generation
+                          && k.parent_id === s.parent_id
+                          && k.formula === s.formula);
+}
+
 function metDef(parentId, s) {
   const childCount = P.steps.filter(k => k.parent_id === s.product_id).length;
-  return def(nid(parentId, 'met', s.product_id), 'met',
-             s.in_kegg ? (s.kegg_name || s.product_id) : (s.formula || '?'), {
+  const sibs = isomers(s);
+  const rank = sibs.indexOf(s) + 1;
+  const caption = s.in_kegg ? (s.kegg_name || s.product_id)
+    : formulaSub(s.formula || '?') + (sibs.length > 1 ? '\n' + rank + ' of ' + sibs.length : '');
+  return def(nid(parentId, 'met', s.product_id), 'met', caption, {
     in_kegg: s.in_kegg ? 1 : 0, mono: s.in_kegg ? 0 : 1,
+    iso_n: sibs.length, iso_i: rank,
     product_id: s.product_id, generation: s.generation, rule_name: s.rule_name,
+    parent_pid: s.parent_id,
     formula: s.formula || '', svg: s.svg || '', kegg_name: s.kegg_name || '',
     lit: s.literature_reported ? 1 : 0, env: s.envipath_corroborated ? 1 : 0,
     reactions: (s.downstream || []).length,
@@ -454,6 +498,7 @@ function parentOf(id) {
 }
 
 function tapToToggle(n) {
+  structCard(n.data('kind') === 'more' ? null : n);
   if (n.data('kind') === 'more') {
     const owner = n.data('opens');
     showAll.add(owner);
@@ -497,6 +542,29 @@ function status() {
     + ' reached · ' + c.experimental_genera + ' genera reported degrading it';
 }
 
+/* The structure card floats over the empty top of the canvas. A 2D drawing is
+   what tells a researcher which position was attacked, and it was previously
+   thumbnail-sized at the bottom of the sheet, where it could not do that job. */
+function structCard(node) {
+  const box = el('structcard');
+  if (!node) { box.hidden = true; box.innerHTML = ''; return; }
+  const d = node.data();
+  let svg = '', name = '', formula = '', iso = '';
+  if (d.kind === 'pah') { svg = P.svg; name = P.name; formula = P.formula; }
+  else if (d.kind === 'met') {
+    svg = d.svg;
+    name = d.in_kegg ? (d.kegg_name || '') : 'Predicted metabolite';
+    formula = d.formula;
+    if (d.iso_n > 1) iso = 'Isomer ' + d.iso_i + ' of ' + d.iso_n + ' with this formula';
+  } else { box.hidden = true; box.innerHTML = ''; return; }
+  if (!svg) { box.hidden = true; box.innerHTML = ''; return; }
+  box.innerHTML = (name ? `<span class="nm">${esc(name)}</span>` : '')
+    + (formula ? `<span class="fm">${formulaHtml(formula)}</span>` : '')
+    + svg
+    + (iso ? `<span class="iso">${esc(iso)}</span>` : '');
+  box.hidden = false;
+}
+
 function sheet(node) {
   const box = el('sheet');
   if (!node) { box.innerHTML = defaultSheet(); return; }
@@ -512,8 +580,7 @@ function sheet(node) {
   if (d.kind === 'pah') {
     const c = P.counts;
     body = head(esc(P.name), 'PAH · ' + P.rings + ' fused rings')
-      + (P.svg ? `<div>${P.svg}</div>` : '')
-      + `<p class="mono">${esc(P.formula || '')}</p>
+      + `<p class="mono">${formulaHtml(P.formula || '')}</p>
          <p>The engine proposed <b>${c.products}</b> transformation${c.products === 1 ? '' : 's'}
          from this structure. KEGG recognises <b>${c.in_kegg}</b> of the products.</p>`
       + `<p>The products nearest the compound are the ones the route carries on
@@ -528,10 +595,19 @@ function sheet(node) {
       d.lit ? '<span class="badge on">Seen in literature</span>' : '',
       d.env ? '<span class="badge on">enviPath agrees</span>' : '',
     ].filter(Boolean).join('');
-    body = head(esc(d.in_kegg ? (d.kegg_name || d.formula) : d.formula),
+    const sibs = d.iso_n > 1 ? isomers({ generation: d.generation, parent_id: d.parent_pid,
+                                         formula: d.formula }) : [];
+    const strip = sibs.length > 1 ? `
+      <p>All ${sibs.length} share the formula ${formulaHtml(d.formula)}. They are the
+         ${sibs.length} ring positions the engine could attack, and they differ only in
+         where the oxygen went.</p>
+      <div class="isostrip">${sibs.map((k, i) =>
+        `<figure class="${k.product_id === d.product_id ? 'on' : ''}">${k.svg}
+           <figcaption>${i + 1}</figcaption></figure>`).join('')}</div>` : '';
+    body = head(d.in_kegg ? esc(d.kegg_name || d.formula) : formulaHtml(d.formula),
                 'Predicted metabolite · generation ' + d.generation)
-      + (d.svg ? `<div>${d.svg}</div>` : '')
       + `<p class="mono">${esc(d.rule_name)}</p><div class="badges">${badges}</div>`
+      + strip
       + (d.in_kegg
         ? `<p>Public annotation curates this structure, so the route carries on:
              ${d.reactions} reaction${d.reactions === 1 ? '' : 's'} consume it.</p>
@@ -587,11 +663,12 @@ function init(elements, onNodeTap, floor) {
     touchTapThreshold: 10,
   });
   cy.on('tap', 'node', e => onNodeTap(e.target));
-  cy.on('tap', e => { if (e.target === cy) { sheet(null); frame(cy.elements(), 300, floor); } });
+  cy.on('tap', e => { if (e.target === cy) { sheet(null); structCard(null); frame(cy.elements(), 300, floor); } });
 }
 
 function renderIndex() {
   P = null;
+  structCard(null);
   el('back').hidden = true;
   el('observed').hidden = true;
   el('title').textContent = 'Where prediction stops';
@@ -643,6 +720,7 @@ async function renderPah(slug) {
   node.addClass('focus');
   frame(cy.elements(), 0, 0.42);
   sheet(node);
+  structCard(node);
   status();
 }
 
@@ -692,6 +770,7 @@ function toggleObserved(btn) {
 el('legend').innerHTML = LEGEND.map(([k, label]) =>
   `<span><i style="background:${GRASS[k].color}"></i>${esc(label)}</span>`).join('');
 el('back').addEventListener('click', () => { location.hash = ''; });
+el('structcard').addEventListener('click', () => structCard(null));
 el('observed').addEventListener('click', e => toggleObserved(e.currentTarget));
 
 function route() {
