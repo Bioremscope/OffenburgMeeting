@@ -45,12 +45,12 @@ body{
   flex:none; border-bottom:1px solid var(--line); background:var(--card);
   padding:10px 16px; display:flex; align-items:center; gap:10px; min-height:58px;
 }
-.bar h1{font:600 17px/1.25 var(--body); margin:0; letter-spacing:-.01em; flex:1; min-width:0;
+.bar h1{font:600 18px/1.25 var(--body); margin:0; letter-spacing:-.01em; flex:1; min-width:0;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.bar .tag{font:500 13.5px/1 var(--mono); color:var(--muted); white-space:nowrap;
+.bar .tag{font:500 14px/1 var(--mono); color:var(--muted); white-space:nowrap;
   font-variant-numeric:tabular-nums}
 .btn{
-  font:600 15px/1 var(--body); color:var(--accent); background:var(--accent-soft);
+  font:600 16px/1 var(--body); color:var(--accent); background:var(--accent-soft);
   border:0; border-radius:7px; padding:10px 12px; cursor:pointer; white-space:nowrap;
 }
 .btn:active{opacity:.7}
@@ -60,14 +60,12 @@ body{
 
 /* ── legend ───────────────────────────────────────────── */
 .legend{
-  flex:none; display:flex; gap:16px; padding:11px 16px; overflow-x:auto;
+  flex:none; display:flex; flex-wrap:wrap; gap:9px 16px; padding:11px 16px;
   border-bottom:1px solid var(--line); background:var(--card);
-  scrollbar-width:none;
 }
-.legend::-webkit-scrollbar{display:none}
-.legend span{display:inline-flex; align-items:center; gap:7px; font-size:13.5px;
-  color:var(--ink); white-space:nowrap}
-.legend i{width:16px; height:16px; border-radius:50%; flex:none}
+.legend span{display:inline-flex; align-items:center; gap:7px; font-size:15px;
+  font-weight:500; color:var(--ink); white-space:nowrap}
+.legend i{width:18px; height:18px; border-radius:50%; flex:none}
 
 /* ── graph ────────────────────────────────────────────── */
 #cy{flex:1; min-height:0; background:var(--canvas);
@@ -76,35 +74,35 @@ html,body{overscroll-behavior-y:contain}
 
 /* ── hint + sheet ─────────────────────────────────────── */
 .hint{
-  flex:none; padding:11px 16px; font-size:14px; color:var(--muted);
+  flex:none; padding:11px 16px; font-size:15px; color:var(--ink);
   border-top:1px solid var(--line); background:var(--card);
 }
 .sheet{
   flex:none; background:var(--card); border-top:1px solid var(--line);
   padding:13px 16px calc(14px + env(safe-area-inset-bottom, 0px));
-  max-height:44vh; overflow-y:auto;
+  max-height:38vh; overflow-y:auto;
 }
 .sheet-h{display:flex; align-items:flex-start; gap:11px; margin-bottom:8px}
 .sheet-h .swatch{width:15px; height:15px; border-radius:50%; flex:none; margin-top:3px}
 .sheet-h .who{flex:1; min-width:0}
-.sheet-h h2{font:600 15.5px/1.25 var(--body); margin:0; letter-spacing:-.01em}
+.sheet-h h2{font:600 17px/1.25 var(--body); margin:0; letter-spacing:-.01em}
 .sheet-h h2 em{font-style:italic}
-.sheet-h .kind{font:500 10.5px/1 var(--body); letter-spacing:.07em; text-transform:uppercase;
+.sheet-h .kind{font:600 12px/1 var(--body); letter-spacing:.07em; text-transform:uppercase;
   color:var(--muted); display:block; margin-bottom:4px}
-.sheet p{margin:0 0 8px; font-size:13.5px; line-height:1.5}
+.sheet p{margin:0 0 9px; font-size:15px; line-height:1.55}
 .sheet p:last-child{margin-bottom:0}
-.sheet .mono{font-family:var(--mono); font-size:12px; color:var(--muted)}
+.sheet .mono{font-family:var(--mono); font-size:13.5px; color:var(--muted)}
 .sheet svg.mol{width:132px; height:100px; float:right; margin:0 0 6px 10px; color:var(--ink)}
 svg.mol path{stroke-width:2; stroke-linecap:butt; stroke-linejoin:miter; fill-rule:evenodd}
 svg.mol ellipse{opacity:.2}
 .badges{display:flex; flex-wrap:wrap; gap:5px; margin:8px 0}
-.badge{font:500 10.5px/1 var(--body); padding:4px 7px; border-radius:4px; white-space:nowrap}
+.badge{font:500 12.5px/1 var(--body); padding:6px 9px; border-radius:5px; white-space:nowrap}
 .badge.on{background:var(--accent-soft); color:var(--accent)}
 .badge.off{background:var(--stop-soft); color:var(--stop)}
-.wall{background:var(--stop-soft); color:var(--ink); border-radius:6px;
-  padding:10px 11px; font-size:13px; line-height:1.5}
+.wall{background:var(--stop-soft); color:var(--ink); border-radius:7px;
+  padding:12px 13px; font-size:14.5px; line-height:1.5}
 .wall b{color:var(--stop)}
-.tapnote{font-size:12px; color:var(--accent); margin-top:8px; font-weight:500}
+.tapnote{font-size:14px; color:var(--accent); margin-top:9px; font-weight:500}
 .loading{margin:auto; color:var(--muted); font-size:13.5px; padding:40px}
 </style>
 
@@ -139,7 +137,7 @@ const GRASS = {
 };
 const LEGEND = [
   ['pah', 'PAH'], ['met_pred', 'Predicted'], ['met_kegg', 'In KEGG'],
-  ['enzyme', 'Enzyme'], ['genus', 'Genus (genome)'], ['organism', 'Genus (lab)'],
+  ['enzyme', 'Enzyme'], ['genus', 'Genome'], ['organism', 'Lab'],
 ];
 const FIRST_GEN_CAP = 12;   // 20 products at 390px pushes labels below legibility
 const CHILD_CAP = 6;
@@ -188,6 +186,34 @@ function jitter01(seed, i) {
   const s = seed + '#' + i;
   for (let k = 0; k < s.length; k++) { h ^= s.charCodeAt(k); h = Math.imul(h, 16777619); }
   return ((h >>> 0) % 1000) / 1000;
+}
+
+/* A snail shell, ordered by fused-ring count: the two-ring compound sits nearest
+   the centre and each turn outward is a heavier molecule. Distance from the
+   centre becomes the axis the result runs along, which a ring of equal radii
+   cannot show.
+
+   The shell is squeezed to the canvas's own aspect ratio. Sixteen labelled nodes
+   need roughly 680px across if they are spread on a circle, which is zoom 0.5 on
+   a phone and unreadable; a portrait screen has height to spare, so the spiral
+   is made tall and narrow and the same nodes render half again as large.
+
+   Consecutive nodes are spaced by arc length rather than by angle, so the turns
+   stay evenly spread instead of bunching up near the middle. */
+function spiral(origin, n, opts) {
+  opts = opts || {};
+  const arc = opts.arc || 140, step = opts.step || 11;
+  const W = (cy && cy.width()) || 390, H = (cy && cy.height()) || 560;
+  const squeeze = Math.max(0.5, Math.min(1, W / H));
+  const out = [];
+  let r = opts.minR || 112;
+  let a = opts.axis !== undefined ? opts.axis : -Math.PI / 4;
+  for (let i = 0; i < n; i++) {
+    out.push({ x: origin.x + squeeze * r * Math.cos(a), y: origin.y + r * Math.sin(a), a });
+    a += arc / r;
+    r += step;
+  }
+  return out;
 }
 
 function fan(origin, axis, n, opts) {
@@ -245,7 +271,7 @@ function styleJson() {
         'label': 'data(label)', 'color': ink,
         'font-family': 'IBM Plex Sans, system-ui, sans-serif', 'font-size': 14,
         'font-weight': 500, 'text-valign': 'bottom', 'text-margin-y': 4,
-        'text-wrap': 'wrap', 'text-max-width': 96, 'min-zoomed-font-size': 5,
+        'text-wrap': 'wrap', 'text-max-width': 80, 'min-zoomed-font-size': 5,
         'text-outline-width': 3, 'text-outline-color': canvas,
         'text-events': 'yes',                      // the label is part of the tap target
         'border-width': 2, 'border-color': canvas, 'overlay-opacity': 0 } },
@@ -365,7 +391,9 @@ function expand(node, opts) {
       '+' + hidden + ' more' + (unrecognised === hidden ? '\n(0 in KEGG)' : ''),
       { expandable: 1, opens: id }));
   }
-  const pos = fan(origin, axis, defs.length, Object.assign({ seed: id }, opts));
+  const o = Object.assign({ seed: id }, opts);
+  const pos = o.shell ? spiral(origin, defs.length, o)
+                      : fan(origin, axis, defs.length, o);
 
   const add = [];
   defs.forEach((d, i) => {
@@ -538,9 +566,9 @@ function renderIndex() {
     if (n.data('kind') === 'pah') { location.hash = '#' + n.data('slug'); return; }
     if (n.data('kind') !== 'hub') return;
     if (open.has('hub')) { collapse('hub'); sheet(null); frame(cy.elements(), 300, 0.5); return; }
-    expand(n, { span: Math.PI * 2, minR: 120, maxR: 176, sep: 74, jitter: 20 });
+    expand(n, { shell: 1, minR: 112, arc: 140, step: 11, axis: -Math.PI / 4 });
     cy.nodes().ungrabify();
-    frame(cy.elements(), 320, 0.5);
+    frame(cy.elements(), 320, 0.8);
   }, 0.5);
   frame(cy.elements(), 0, 0.5);
   sheet(null);
