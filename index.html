@@ -412,6 +412,18 @@ function expand(node, opts) {
       { expandable: 1, opens: id }));
   }
   const o = Object.assign({ seed: id }, opts);
+  /* `shell: 'auto'` fits the shell to however many children this node has.
+     One full turn (360/n per step) is what keeps every spoke on its own
+     bearing: a step that divides 360 by fewer than n puts two children on the
+     same line out of the parent. The radius grows by a fixed ratio, so the
+     opening always reads as a spiral rather than a ring, and it starts far
+     enough out that neighbouring captions clear each other. */
+  if (o.shell === 'auto') {
+    const n = defs.length;
+    o.turn = 2 * Math.PI / Math.max(n, 2);
+    o.growth = Math.pow(2.2, 1 / Math.max(n - 1, 1));
+    o.minR = Math.max(120, 15 * n);
+  }
   const pos = o.shell ? spiral(origin, defs.length, o)
                       : fan(origin, axis, defs.length, o);
 
@@ -504,6 +516,9 @@ function sheet(node) {
       + `<p class="mono">${esc(P.formula || '')}</p>
          <p>The engine proposed <b>${c.products}</b> transformation${c.products === 1 ? '' : 's'}
          from this structure. KEGG recognises <b>${c.in_kegg}</b> of the products.</p>`
+      + `<p>The products nearest the compound are the ones the route carries on
+           from; the ones furthest out are where it stops. Same direction as the
+           shell you came in on.</p>`
       + (c.in_kegg
         ? `<p class="tapnote">Tap the compound to open its first attack.</p>`
         : `<div class="wall"><b>Nothing to continue from.</b> No predicted product of ${esc(P.name)} matches a compound in the public PAH pathways, so no enzyme and no genome can be reached from its chemistry. Only the laboratory route remains.</div>`);
@@ -619,11 +634,14 @@ async function renderPah(slug) {
                              { position: { x: 0, y: 0 } });
   init([root], tapToToggle, 0.55);
   const node = cy.getElementById(rootId);
-  expand(node, { axis: -Math.PI / 2, span: Math.PI * 2 });
+  // The opening view gets the same shell the sixteen compounds arrive on, so a
+  // visitor who has seen one recognises the other. Deeper taps fall back to the
+  // plain fan: from there the shape is whatever the visitor has opened.
+  expand(node, { shell: 'auto', axis: -40 * Math.PI / 180 });
   cy.nodes().ungrabify();
   open.add(rootId);
   node.addClass('focus');
-  frame(cy.elements(), 0, 0.55);
+  frame(cy.elements(), 0, 0.42);
   sheet(node);
   status();
 }
