@@ -1,0 +1,605 @@
+<title>Where Prediction Stops</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --paper:#F4F5F3; --card:#FFFFFF; --canvas:#FAFAF8;
+  --ink:#16201E; --muted:#69756F; --line:#DCDED8;
+  --accent:#0B6E63; --accent-soft:#E2EFEB;
+  --stop:#963425; --stop-soft:#F7E5E1;
+  --edge:#B9BFB9; --edge-dim:#D5D9D3;
+  --body:"IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --paper:#0E1312; --card:#161C1A; --canvas:#111614;
+    --ink:#E7EAE7; --muted:#95A09B; --line:#28302D;
+    --accent:#5CBEAF; --accent-soft:#15302B;
+    --stop:#E0866F; --stop-soft:#321E1A;
+    --edge:#43504B; --edge-dim:#2C3532;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --paper:#0E1312; --card:#161C1A; --canvas:#111614;
+  --ink:#E7EAE7; --muted:#95A09B; --line:#28302D;
+  --accent:#5CBEAF; --accent-soft:#15302B;
+  --stop:#E0866F; --stop-soft:#321E1A;
+  --edge:#43504B; --edge-dim:#2C3532;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--body); font-size:15px; line-height:1.5;
+  -webkit-text-size-adjust:100%;
+  display:flex; flex-direction:column;
+}
+
+/* ── top bar ──────────────────────────────────────────── */
+.bar{
+  flex:none; border-bottom:1px solid var(--line); background:var(--card);
+  padding:9px 16px; display:flex; align-items:center; gap:10px; min-height:50px;
+}
+.bar h1{font:600 14.5px/1.2 var(--body); margin:0; letter-spacing:-.01em; flex:1; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.bar .tag{font:400 11.5px/1 var(--mono); color:var(--muted); white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.btn{
+  font:500 12.5px/1 var(--body); color:var(--accent); background:var(--accent-soft);
+  border:0; border-radius:6px; padding:8px 10px; cursor:pointer; white-space:nowrap;
+}
+.btn:active{opacity:.7}
+.btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.btn[aria-pressed="true"]{background:var(--accent); color:var(--card)}
+.btn.ghost{background:none; padding:8px 2px}
+
+/* ── legend ───────────────────────────────────────────── */
+.legend{
+  flex:none; display:flex; gap:12px; padding:8px 16px; overflow-x:auto;
+  border-bottom:1px solid var(--line); background:var(--card);
+  scrollbar-width:none;
+}
+.legend::-webkit-scrollbar{display:none}
+.legend span{display:inline-flex; align-items:center; gap:5px; font-size:11.5px;
+  color:var(--muted); white-space:nowrap}
+.legend i{width:11px; height:11px; border-radius:50%; flex:none}
+
+/* ── graph ────────────────────────────────────────────── */
+#cy{flex:1; min-height:0; background:var(--canvas);
+  touch-action:none; overscroll-behavior:contain; -webkit-tap-highlight-color:transparent}
+html,body{overscroll-behavior-y:contain}
+
+/* ── hint + sheet ─────────────────────────────────────── */
+.hint{
+  flex:none; padding:9px 16px; font-size:12.5px; color:var(--muted);
+  border-top:1px solid var(--line); background:var(--card);
+}
+.sheet{
+  flex:none; background:var(--card); border-top:1px solid var(--line);
+  padding:13px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  max-height:44vh; overflow-y:auto;
+}
+.sheet-h{display:flex; align-items:flex-start; gap:11px; margin-bottom:8px}
+.sheet-h .swatch{width:15px; height:15px; border-radius:50%; flex:none; margin-top:3px}
+.sheet-h .who{flex:1; min-width:0}
+.sheet-h h2{font:600 15.5px/1.25 var(--body); margin:0; letter-spacing:-.01em}
+.sheet-h h2 em{font-style:italic}
+.sheet-h .kind{font:500 10.5px/1 var(--body); letter-spacing:.07em; text-transform:uppercase;
+  color:var(--muted); display:block; margin-bottom:4px}
+.sheet p{margin:0 0 8px; font-size:13.5px; line-height:1.5}
+.sheet p:last-child{margin-bottom:0}
+.sheet .mono{font-family:var(--mono); font-size:12px; color:var(--muted)}
+.sheet svg.mol{width:132px; height:100px; float:right; margin:0 0 6px 10px; color:var(--ink)}
+svg.mol path{stroke-width:2; stroke-linecap:butt; stroke-linejoin:miter; fill-rule:evenodd}
+svg.mol ellipse{opacity:.2}
+.badges{display:flex; flex-wrap:wrap; gap:5px; margin:8px 0}
+.badge{font:500 10.5px/1 var(--body); padding:4px 7px; border-radius:4px; white-space:nowrap}
+.badge.on{background:var(--accent-soft); color:var(--accent)}
+.badge.off{background:var(--stop-soft); color:var(--stop)}
+.wall{background:var(--stop-soft); color:var(--ink); border-radius:6px;
+  padding:10px 11px; font-size:13px; line-height:1.5}
+.wall b{color:var(--stop)}
+.tapnote{font-size:12px; color:var(--accent); margin-top:8px; font-weight:500}
+.loading{margin:auto; color:var(--muted); font-size:13.5px; padding:40px}
+</style>
+
+<div class="bar">
+  <button class="btn ghost" id="back" hidden>&larr; All 16</button>
+  <h1 id="title">Loading…</h1>
+  <button class="btn" id="observed" aria-pressed="false" hidden>Lab degraders</button>
+  <span class="tag" id="tag"></span>
+</div>
+
+<div class="legend" id="legend"></div>
+<div id="cy"></div>
+<div class="hint" id="hint">Tap a node to open it. Tap it again to close.</div>
+<div class="sheet" id="sheet"><p class="loading">Loading the snapshot…</p></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.4/cytoscape.min.js" integrity="sha384-H3uzGzTfGHUAumB8+s4GEdfFwzAceN9wCCndN8AXubWKFIPuBSWKKtWDx7RhSf/z" crossorigin="anonymous"></script>
+<script>
+/* Colours and relative sizes are ported verbatim from the Neo4j Browser style
+   the audience has just been shown on the laptop (demo/demo_kg/demo_style.grass),
+   so the phone screen reads as the same graph zoomed in. They are node
+   identities: they never change with the page theme. Only canvas, labels and
+   edges follow it. */
+const GRASS = {
+  hub:      { color: '#D64545', size: 50 },
+  pah:      { color: '#D64545', size: 34 },
+  met_pred: { color: '#F2A9A0', size: 26 },
+  met_kegg: { color: '#E8837A', size: 30 },
+  enzyme:   { color: '#9575B8', size: 28 },
+  genus:    { color: '#57A773', size: 28 },
+  organism: { color: '#8FC99C', size: 26 },
+  more:     { color: '#A5ABB6', size: 24 },
+};
+const LEGEND = [
+  ['pah', 'PAH'], ['met_pred', 'Predicted'], ['met_kegg', 'In KEGG'],
+  ['enzyme', 'Enzyme'], ['genus', 'Genus (genome)'], ['organism', 'Genus (lab)'],
+];
+const FIRST_GEN_CAP = 12;   // 20 products at 390px pushes labels below legibility
+const CHILD_CAP = 6;
+const ORGANISM_CAP = 12;
+const Z_MIN = 0.62, Z_MAX = 1.2;
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const v = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const el = id => document.getElementById(id);
+
+let INDEX = null, P = null, cy = null, ecIndex = new Map();
+const cache = {};
+const kids = new Map();     // node id -> [child ids], recorded when it blooms
+const open = new Set();     // node ids whose children are on screen
+const showAll = new Set();  // node ids whose capped fan has been expanded in full
+
+async function load(path) {
+  if (cache[path]) return cache[path];
+  const r = await fetch('data/' + path);
+  if (!r.ok) throw new Error(path);
+  return (cache[path] = await r.json());
+}
+
+/* Ids are scoped to the parent that revealed the node. Two metabolites of
+   benzo[a]pyrene reach the same partial EC, and two of fluorene do as well; with
+   one global id per enzyme, collapsing the first metabolite would delete a node
+   the second one still owns. Scoping keeps the picture a tree, which is what
+   makes collapse a one-liner. The cost is that a genus can appear twice under
+   two enzymes, which is the honest reading anyway: it carries both. */
+const nid = (parent, kind, key) => kind + '|' + parent + '|' + key;
+
+/* ── deterministic radial placement ───────────────────────────────────────
+   No layout engine runs, ever. A physics pass jitters, and this demo gets
+   given thirty times in an afternoon. Children sit on an arc centred on the
+   direction their parent was itself placed in, so a branch grows outward and
+   never back over its own trunk. Two nodes D radians apart on radius r are
+   2r·sin(D/2) apart, so requiring that to clear SEP fixes the radius. */
+const SEP = 76, R_MIN = 112, R_MAX = 240, RING_GAP = 52;
+
+function fan(origin, axis, n, opts) {
+  opts = opts || {};
+  const span = opts.span !== undefined ? opts.span : Math.PI * 1.15;
+  const full = span >= Math.PI * 1.99;
+  if (n <= 0) return [];
+  if (n === 1) return [{ x: origin.x + R_MIN * Math.cos(axis), y: origin.y + R_MIN * Math.sin(axis), a: axis }];
+  const step = full ? span / n : span / (n - 1);
+  const stagger = n > 6;
+  const sep = Math.min(stagger ? step : step / 2, Math.PI / 2);
+  let r0 = Math.min(Math.max((opts.sep || SEP) / (2 * Math.sin(sep)), opts.minR || R_MIN), R_MAX);
+  const start = full ? axis : axis - span / 2;
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const a = start + i * step;
+    const r = r0 + (stagger && (i % 2) ? RING_GAP : 0);
+    out.push({ x: origin.x + r * Math.cos(a), y: origin.y + r * Math.sin(a), a });
+  }
+  return out;
+}
+
+/* Framing keeps a legibility floor. cy.fit() on a growing tree zooms out until
+   the labels are gone, which is the one thing this page cannot afford. */
+function frame(eles, dur, floor) {
+  if (!eles || !eles.length) return;
+  const bb = eles.boundingBox({ includeLabels: true });
+  if (!bb.w || !bb.h) return;
+  const pad = 26, W = cy.width(), H = cy.height();
+  const z = Math.min(Z_MAX, Math.max(floor || Z_MIN,
+            Math.min((W - 2 * pad) / bb.w, (H - 2 * pad) / bb.h)));
+  const cx = (bb.x1 + bb.x2) / 2, cyc = (bb.y1 + bb.y2) / 2;
+  cy.animate({ zoom: z, pan: { x: W / 2 - z * cx, y: H / 2 - z * cyc } },
+             { duration: dur === undefined ? 300 : dur, easing: 'ease-out-cubic' });
+}
+
+/* CSS variables are read at call time, not frozen into a literal at parse time:
+   that is the bug in demo/app/app.js, where a theme change leaves a live graph
+   styled for the old one. Everything here goes through classes and data()
+   mappers, never element bypasses, so re-emitting the sheet restyles cleanly. */
+function styleJson() {
+  const ink = v('--ink'), canvas = v('--canvas'), edge = v('--edge'),
+        dim = v('--edge-dim'), accent = v('--accent');
+  return [
+    { selector: 'node', style: {
+        'background-color': 'data(color)', 'width': 'data(size)', 'height': 'data(size)',
+        'label': 'data(label)', 'color': ink,
+        'font-family': 'IBM Plex Sans, system-ui, sans-serif', 'font-size': 11,
+        'font-weight': 500, 'text-valign': 'bottom', 'text-margin-y': 4,
+        'text-wrap': 'wrap', 'text-max-width': 78, 'min-zoomed-font-size': 6,
+        'text-outline-width': 2.5, 'text-outline-color': canvas,
+        'text-events': 'yes',                      // the label is part of the tap target
+        'border-width': 2, 'border-color': canvas, 'overlay-opacity': 0 } },
+    { selector: 'node[kind="hub"]', style: { 'font-size': 13, 'font-weight': 600 } },
+    { selector: 'node[kind="pah"]', style: { 'font-size': 12, 'font-weight': 600 } },
+    { selector: 'node[mono=1]', style: { 'font-family': 'IBM Plex Mono, ui-monospace, monospace', 'font-size': 10 } },
+    { selector: 'node[italic=1]', style: { 'font-style': 'italic' } },
+    { selector: 'node[kind="more"]', style: { 'shape': 'round-rectangle', 'font-size': 10 } },
+    { selector: 'node[?expandable]', style: { 'border-color': edge } },
+    { selector: 'node.focus', style: { 'border-width': 4, 'border-color': accent } },
+    { selector: 'edge', style: {
+        'width': 1.5, 'curve-style': 'straight', 'line-color': edge, 'opacity': 0.85 } },
+    { selector: 'edge[weak=1]', style: { 'line-color': dim, 'line-style': 'dashed' } },
+  ];
+}
+
+function def(id, kind, label, extra) {
+  const key = kind === 'met' ? (extra && extra.in_kegg ? 'met_kegg' : 'met_pred') : kind;
+  return { group: 'nodes', data: Object.assign(
+    { id, kind, label, color: GRASS[key].color, size: GRASS[key].size }, extra || {}) };
+}
+
+/* ── what opening a node reveals ──────────────────────────────────────── */
+function metDef(parentId, s) {
+  const childCount = P.steps.filter(k => k.parent_id === s.product_id).length;
+  return def(nid(parentId, 'met', s.product_id), 'met',
+             s.in_kegg ? (s.kegg_name || s.product_id) : (s.formula || '?'), {
+    in_kegg: s.in_kegg ? 1 : 0, mono: s.in_kegg ? 0 : 1,
+    product_id: s.product_id, generation: s.generation, rule_name: s.rule_name,
+    formula: s.formula || '', svg: s.svg || '', kegg_name: s.kegg_name || '',
+    lit: s.literature_reported ? 1 : 0, env: s.envipath_corroborated ? 1 : 0,
+    reactions: (s.downstream || []).length,
+    ecs: Array.from(new Set((s.downstream || []).reduce((a, r) => a.concat(r.ecs), []))).join(','),
+    expandable: (childCount || (s.downstream || []).length) ? 1 : 0,
+  });
+}
+
+function childrenOf(node) {
+  const id = node.id(), kind = node.data('kind');
+
+  if (kind === 'pah') {
+    const all = P.steps.filter(s => s.generation === 1);
+    return { all: all.map(s => metDef(id, s)), cap: FIRST_GEN_CAP };
+  }
+  if (kind === 'met') {
+    const out = [];
+    P.steps.filter(s => s.parent_id === node.data('product_id'))
+           .forEach(s => out.push(metDef(id, s)));
+    (node.data('ecs') || '').split(',').filter(Boolean).forEach(ec => {
+      const m = ecIndex.get(ec);
+      out.push(def(nid(id, 'enz', ec), 'enzyme', (m && m.symbol) || ec.replace('ec:', 'EC '), {
+        ec, italic: m && m.symbol && !m.symbol.startsWith('EC ') ? 1 : 0,
+        enzyme_name: (m && m.enzyme_name) || '', total: (m && m.total) || 0,
+        expandable: (m && m.head.length) ? 1 : 0,
+      }));
+    });
+    return { all: out, cap: CHILD_CAP + 4 };
+  }
+  if (kind === 'enzyme') {
+    const m = ecIndex.get(node.data('ec'));
+    if (!m) return { all: [], cap: 99 };
+    return { all: m.head.map(g => def(nid(id, 'gen', g.genus), 'genus', g.genus, {
+      italic: 1, genomes: g.genomes, ec: m.ec })), cap: 11 };
+  }
+  return { all: [], cap: 99 };
+}
+
+/* ── expand / collapse ────────────────────────────────────────────────── */
+function descendants(id, acc) {
+  acc = acc || [];
+  (kids.get(id) || []).forEach(k => { acc.push(k); descendants(k, acc); });
+  return acc;
+}
+
+function collapse(id) {
+  const ids = descendants(id);
+  if (ids.length) {
+    cy.batch(() => {
+      ids.forEach(i => { const e = cy.getElementById(i); if (e.length) cy.remove(e); });
+    });
+  }
+  ids.forEach(i => { open.delete(i); kids.delete(i); showAll.delete(i); });
+  kids.delete(id);
+  open.delete(id);
+}
+
+function expand(node, opts) {
+  opts = opts || {};
+  const id = node.id();
+  const got = childrenOf(node);
+  let list = got.all;
+  const hidden = showAll.has(id) ? 0 : Math.max(0, list.length - got.cap);
+  if (hidden) list = list.slice(0, got.cap);
+  if (!list.length && !hidden) return 0;
+
+  const origin = node.position();
+  const axis = node.data('axis') !== undefined ? node.data('axis')
+             : (opts.axis !== undefined ? opts.axis : -Math.PI / 2);
+  const defs = list.slice();
+  if (hidden) {
+    const unrecognised = got.all.slice(got.cap).filter(d => !d.data.in_kegg).length;
+    defs.push(def(nid(id, 'more', 'x'), 'more',
+      '+' + hidden + ' more' + (unrecognised === hidden ? '\n(0 in KEGG)' : ''),
+      { expandable: 1, opens: id }));
+  }
+  const pos = fan(origin, axis, defs.length, opts);
+
+  const add = [];
+  defs.forEach((d, i) => {
+    d.data.axis = pos[i].a;
+    add.push(Object.assign({}, d, { position: { x: pos[i].x, y: pos[i].y } }));
+    add.push({ group: 'edges', data: {
+      id: 'x' + id + '>' + d.data.id, source: id, target: d.data.id,
+      weak: d.data.kind === 'more' ? 1 : 0 } });
+  });
+  cy.batch(() => { cy.add(add); });
+  kids.set(id, defs.map(d => d.data.id));
+  open.add(id);
+  return defs.length;
+}
+
+/* One open branch per level. It bounds what is on screen, and it is also the
+   right narrative: a visitor at a poster follows one chain, not a bush. */
+function parentOf(id) {
+  for (const [p, ks] of kids) if (ks.indexOf(id) >= 0) return p;
+  return null;
+}
+
+function tapToToggle(n) {
+  if (n.data('kind') === 'more') {
+    const owner = n.data('opens');
+    showAll.add(owner);
+    const node = cy.getElementById(owner);
+    collapse(owner);
+    expand(node);
+    cy.nodes().ungrabify();
+    focusOn(node);
+    return;
+  }
+  sheet(n);
+  if (!n.data('expandable')) { focusOn(n); return; }
+  const id = n.id();
+  if (open.has(id)) { collapse(id); focusOn(cy.getElementById(parentOf(id) || id)); return; }
+  const par = parentOf(id);
+  (kids.get(par) || []).forEach(s => { if (s !== id && open.has(s)) collapse(s); });
+  if (expand(n)) { cy.nodes().ungrabify(); focusOn(n); }
+}
+
+function focusOn(n) {
+  cy.nodes().removeClass('focus');
+  if (!n || !n.length) return;
+  n.addClass('focus');
+  frame(n.union(n.outgoers().union(n.incomers())), 300);
+}
+
+/* ── detail sheet and the status line ─────────────────────────────────── */
+function status() {
+  if (!P) {
+    const t = INDEX.totals;
+    el('hint').textContent =
+      t.transformations + ' transformations predicted from 16 structures · '
+      + t.in_kegg + ' products recognised by KEGG · all of them in '
+      + t.pahs_with_kegg + ' compounds';
+    return;
+  }
+  const c = P.counts;
+  el('hint').textContent =
+    P.name + ' — ' + c.products + ' products predicted · ' + c.in_kegg
+    + ' recognised by KEGG · ' + c.ecs + ' enzyme' + (c.ecs === 1 ? '' : 's')
+    + ' reached · ' + c.experimental_genera + ' genera reported degrading it';
+}
+
+function sheet(node) {
+  const box = el('sheet');
+  if (!node) { box.innerHTML = defaultSheet(); return; }
+  const d = node.data();
+  const key = d.kind === 'met' ? (d.in_kegg ? 'met_kegg' : 'met_pred') : d.kind;
+  if (!GRASS[key]) { box.innerHTML = defaultSheet(); return; }
+  const head = (title, sub) => `<div class="sheet-h">
+      <span class="swatch" style="background:${GRASS[key].color}"></span>
+      <span class="who"><span class="kind">${esc(sub)}</span><h2>${title}</h2></span>
+    </div>`;
+  let body = '';
+
+  if (d.kind === 'pah') {
+    const c = P.counts;
+    body = head(esc(P.name), 'PAH · ' + P.rings + ' fused rings')
+      + (P.svg ? `<div>${P.svg}</div>` : '')
+      + `<p class="mono">${esc(P.formula || '')}</p>
+         <p>The engine proposed <b>${c.products}</b> transformation${c.products === 1 ? '' : 's'}
+         from this structure. KEGG recognises <b>${c.in_kegg}</b> of the products.</p>`
+      + (c.in_kegg
+        ? `<p class="tapnote">Tap the compound to open its first attack.</p>`
+        : `<div class="wall"><b>Nothing to continue from.</b> No predicted product of ${esc(P.name)} matches a compound in the public PAH pathways, so no enzyme and no genome can be reached from its chemistry. Only the laboratory route remains.</div>`);
+  } else if (d.kind === 'met') {
+    const badges = [
+      d.in_kegg ? '<span class="badge on">KEGG compound</span>' : '<span class="badge off">Not in KEGG</span>',
+      d.lit ? '<span class="badge on">Seen in literature</span>' : '',
+      d.env ? '<span class="badge on">enviPath agrees</span>' : '',
+    ].filter(Boolean).join('');
+    body = head(esc(d.in_kegg ? (d.kegg_name || d.formula) : d.formula),
+                'Predicted metabolite · generation ' + d.generation)
+      + (d.svg ? `<div>${d.svg}</div>` : '')
+      + `<p class="mono">${esc(d.rule_name)}</p><div class="badges">${badges}</div>`
+      + (d.in_kegg
+        ? `<p>Public annotation curates this structure, so the route carries on:
+             ${d.reactions} reaction${d.reactions === 1 ? '' : 's'} consume it.</p>
+           <p class="tapnote">Tap it to reveal the enzymes.</p>`
+        : `<div class="wall"><b>The chain ends here.</b> This structure matches no compound in the curated PAH pathways. The prediction is chemically plausible and evidentially unsupported, so no enzyme and no organism follow from it.</div>`);
+  } else if (d.kind === 'enzyme') {
+    body = head(esc(d.label), 'Enzyme')
+      + `<p>${esc(d.enzyme_name)}</p><p class="mono">${esc(String(d.ec).replace('ec:', 'EC '))}</p>`
+      + (d.total
+        ? `<p>Carried by <b>${d.total}</b> sequenced genera in KEGG.</p>
+           <p class="tapnote">Tap it to see them.</p>`
+        : `<div class="wall"><b>Partial EC number.</b> KEGG classifies this reaction only to a sub-subclass, so no genome can be matched to it.</div>`);
+  } else if (d.kind === 'genus') {
+    body = head('<em>' + esc(d.label) + '</em>', 'Genus · genome evidence')
+      + `<p><b>${d.genomes}</b> sequenced genome${d.genomes === 1 ? '' : 's'} of this genus carry the enzyme.</p>
+         <p>That is genomic potential. It says the machinery is present, not that anyone measured this organism degrading ${esc(P.name)}.</p>`;
+  } else if (d.kind === 'organism') {
+    body = head('<em>' + esc(d.label) + '</em>', 'Genus · laboratory evidence')
+      + `<p>Reported degrading ${esc(P.name)} in <b>${d.papers}</b> independent paper${d.papers === 1 ? '' : 's'}${d.runs ? ', across ' + d.runs + ' runs' : ''}.</p>
+         <p>This route reads published outcomes. It names who, and says nothing about how.</p>`;
+  } else {
+    body = defaultSheet();
+  }
+  box.innerHTML = body;
+  box.scrollTop = 0;
+}
+
+function defaultSheet() {
+  if (!P) {
+    return `<p>Each red circle is one of the 16 EPA priority PAHs. Tap one and the
+      rule engine breaks it down in front of you.</p>
+      <p class="tapnote">Pale pink is a prediction nothing recognises. It turns salmon only where public annotation confirms the structure.</p>`;
+  }
+  return `<p>Tap any node to open it. Tap it again to close.</p>
+    <p class="tapnote">Pale pink is a prediction nothing recognises; salmon means KEGG curates that compound; purple is the enzyme; green is an organism.</p>`;
+}
+
+/* ── graph construction ───────────────────────────────────────────────── */
+function init(elements, onNodeTap, floor) {
+  if (cy) { cy.destroy(); cy = null; }
+  kids.clear(); open.clear(); showAll.clear();
+  cy = window.cytoscape({
+    container: el('cy'),
+    elements,
+    style: styleJson(),
+    autoungrabify: true,
+    autounselectify: true,
+    boxSelectionEnabled: false,
+    minZoom: 0.4,
+    maxZoom: 1.6,
+    touchTapThreshold: 10,
+  });
+  cy.on('tap', 'node', e => onNodeTap(e.target));
+  cy.on('tap', e => { if (e.target === cy) { sheet(null); frame(cy.elements(), 300, floor); } });
+}
+
+function renderIndex() {
+  P = null;
+  el('back').hidden = true;
+  el('observed').hidden = true;
+  el('title').textContent = 'Where prediction stops';
+  el('tag').textContent = INDEX.totals.pahs_with_kegg + '/' + INDEX.totals.pahs;
+
+  const els = [Object.assign(def('hub', 'hub', '16 EPA PAHs', {}), { position: { x: 0, y: 0 } })];
+  const pos = fan({ x: 0, y: 0 }, -Math.PI / 2, INDEX.pahs.length,
+                  { span: Math.PI * 2, minR: 150, sep: 62 });
+  INDEX.pahs.forEach((p, i) => {
+    const id = 'pah|' + p.slug;
+    els.push(Object.assign(def(id, 'pah', p.name, { slug: p.slug }),
+                           { position: { x: pos[i].x, y: pos[i].y } }));
+    els.push({ group: 'edges', data: { id: 'x>' + id, source: 'hub', target: id, weak: 1 } });
+  });
+  init(els, n => { if (n.data('kind') === 'pah') location.hash = '#' + n.data('slug'); }, 0.5);
+  frame(cy.elements(), 0, 0.5);
+  sheet(null);
+  status();
+}
+
+async function renderPah(slug) {
+  try { P = await load('pah/' + slug + '.json'); }
+  catch { location.hash = ''; return; }
+  ecIndex = new Map((P.ecs || []).map(e => [e.ec, e]));
+
+  el('back').hidden = false;
+  el('observed').hidden = false;
+  el('observed').setAttribute('aria-pressed', 'false');
+  el('title').textContent = P.name;
+  el('tag').textContent = P.counts.in_kegg + '/' + P.counts.products;
+
+  const rootId = 'pah|' + P.slug;
+  const root = Object.assign(def(rootId, 'pah', P.name, { slug: P.slug, expandable: 1 }),
+                             { position: { x: 0, y: 0 } });
+  init([root], tapToToggle, 0.55);
+  const node = cy.getElementById(rootId);
+  expand(node, { axis: -Math.PI / 2, span: Math.PI * 1.25 });
+  cy.nodes().ungrabify();
+  open.add(rootId);
+  node.addClass('focus');
+  frame(cy.elements(), 0, 0.55);
+  sheet(node);
+  status();
+}
+
+/* The laboratory route is a control and not a tap. It is separate evidence,
+   gathered from sources that never saw KEGG, and it attaches to the compound
+   rather than to anything downstream of it, so it gets the back arc the
+   chemistry fan leaves free: chemistry grows upward, biology downward. */
+function toggleObserved(btn) {
+  if (!P) return;
+  const rootId = 'pah|' + P.slug;
+  if (btn.getAttribute('aria-pressed') === 'true') {
+    cy.batch(() => {
+      cy.nodes('[kind="organism"]').forEach(n => cy.remove(n));
+    });
+    btn.setAttribute('aria-pressed', 'false');
+    return;
+  }
+  const all = P.experimental || [];
+  if (!all.length) {
+    el('sheet').innerHTML =
+      `<div class="wall"><b>No laboratory route either.</b> No curated experiment in this snapshot reports a single organism degrading ${esc(P.name)}.</div>`;
+    return;
+  }
+  const list = all.slice(0, ORGANISM_CAP);
+  const root = cy.getElementById(rootId);
+  const pos = fan(root.position(), Math.PI / 2, list.length, { span: Math.PI * 1.1, minR: 150 });
+  const add = [];
+  list.forEach((g, i) => {
+    const id = nid(rootId, 'org', g.genus);
+    add.push(Object.assign(def(id, 'organism', g.genus, { italic: 1, papers: g.papers, runs: g.runs }),
+                           { position: { x: pos[i].x, y: pos[i].y } }));
+    add.push({ group: 'edges', data: { id: 'x' + id, source: rootId, target: id, weak: 1 } });
+  });
+  cy.batch(() => { cy.add(add); });
+  cy.nodes().ungrabify();
+  btn.setAttribute('aria-pressed', 'true');
+  el('sheet').innerHTML =
+    `<div class="sheet-h"><span class="swatch" style="background:${GRASS.organism.color}"></span>
+      <span class="who"><span class="kind">Laboratory route</span><h2>${all.length} genera reported</h2></span></div>
+     <p>Curated primary literature reports ${all.length} genera degrading ${esc(P.name)}${all.length > list.length ? '; the ' + list.length + ' most reported are drawn' : ''}.</p>
+     <p>${P.counts.in_kegg ? 'This evidence was gathered from sources that never saw KEGG. Where it agrees with the enzyme route above, it agrees independently.' : 'No mechanism reached this compound, so these genera are all the graph knows about it: who, without how.'}</p>`;
+  frame(cy.elements(), 300, 0.5);
+}
+
+/* ── boot ─────────────────────────────────────────────────────────────── */
+el('legend').innerHTML = LEGEND.map(([k, label]) =>
+  `<span><i style="background:${GRASS[k].color}"></i>${esc(label)}</span>`).join('');
+el('back').addEventListener('click', () => { location.hash = ''; });
+el('observed').addEventListener('click', e => toggleObserved(e.currentTarget));
+
+function route() {
+  const slug = location.hash.replace(/^#\/?/, '').trim();
+  if (slug && INDEX.pahs.some(p => p.slug === slug)) renderPah(slug);
+  else renderIndex();
+}
+window.addEventListener('hashchange', route);
+window.addEventListener('orientationchange', () => {
+  if (cy) { cy.resize(); frame(cy.elements(), 0, 0.5); }
+});
+
+const mq = window.matchMedia('(prefers-color-scheme: dark)');
+const onTheme = () => requestAnimationFrame(() => { if (cy) cy.style().fromJson(styleJson()).update(); });
+mq.addEventListener ? mq.addEventListener('change', onTheme) : mq.addListener(onTheme);
+
+if (!window.cytoscape) {
+  el('sheet').innerHTML =
+    `<div class="wall">The graph library could not be loaded. This page needs a network connection the first time it opens.</div>`;
+} else {
+  load('index.json').then(d => { INDEX = d; route(); })
+    .catch(() => { el('sheet').innerHTML = `<div class="wall">The snapshot could not be loaded.</div>`; });
+}
+</script>
