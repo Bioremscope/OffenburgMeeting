@@ -202,12 +202,17 @@ function jitter01(seed, i) {
    stay evenly spread instead of bunching up near the middle. */
 function spiral(origin, n, opts) {
   opts = opts || {};
-  const growth = opts.growth || 1.10;          // radius multiplier per node
-  const turn = opts.turn || (30 * Math.PI / 180);
+  const growth = opts.growth || 1.08;          // radius multiplier per node
+  /* 22.5 degrees is 360/16 exactly: the sixteen beads make one full turn and
+     every spoke from the hub gets its own bearing, 22.5 degrees clear of its
+     neighbours. Any step that divides 360 by a whole number smaller than the
+     bead count puts two beads on the same bearing and their two spokes merge
+     into one line -- which is what 30 degrees did, at four pairs. */
+  const turn = opts.turn || (22.5 * Math.PI / 180);
   const W = (cy && cy.width()) || 390, H = (cy && cy.height()) || 560;
   const squeeze = Math.max(0.5, Math.min(1, W / H));
   const out = [];
-  let r = opts.minR || 150;
+  let r = opts.minR || 170;
   let a = opts.axis !== undefined ? opts.axis : (-40 * Math.PI / 180);
   for (let i = 0; i < n; i++) {
     out.push({ x: origin.x + squeeze * r * Math.cos(a), y: origin.y + r * Math.sin(a), a });
@@ -291,7 +296,7 @@ function styleJson() {
     { selector: 'node[mono=1]', style: { 'font-family': 'IBM Plex Mono, ui-monospace, monospace', 'font-size': 12 } },
     { selector: 'node[italic=1]', style: { 'font-style': 'italic' } },
     { selector: 'node[kind="more"]', style: { 'shape': 'round-rectangle', 'font-size': 12 } },
-    { selector: 'node[wide=1]', style: { 'text-max-width': 86 } },
+    { selector: 'node[wide=1]', style: { 'text-max-width': 80 } },
     { selector: 'node[lh="right"]', style: { 'text-halign': 'right', 'text-valign': 'center', 'text-margin-x': 8, 'text-margin-y': 0 } },
     { selector: 'node[lh="left"]', style: { 'text-halign': 'left', 'text-valign': 'center', 'text-margin-x': -8, 'text-margin-y': 0 } },
     { selector: 'node[lv="top"]', style: { 'text-valign': 'top', 'text-margin-y': -6 } },
@@ -586,15 +591,12 @@ function renderIndex() {
     if (n.data('kind') === 'pah') { location.hash = '#' + n.data('slug'); return; }
     if (n.data('kind') !== 'hub') return;
     if (open.has('hub')) { collapse('hub'); sheet(null); frame(cy.elements(), 300, 0.5); return; }
-    expand(n, { shell: 1, minR: 150, growth: 1.10, turn: 30 * Math.PI / 180, axis: -40 * Math.PI / 180 });
+    expand(n, { shell: 1, minR: 170, growth: 1.08, turn: 22.5 * Math.PI / 180, axis: -40 * Math.PI / 180 });
     cy.nodes().ungrabify();
-    // Open on the tight centre of the shell rather than on the whole of it.
-    // Sixteen captions cannot be legible at once on a phone, so the view starts
-    // where the light compounds are, at a readable size, and the shell visibly
-    // continues off-screen — which is its own invitation to follow it outward.
-    const inner = (kids.get('hub') || []).slice(0, 6).map(i => cy.getElementById(i));
-    frame(inner.reduce((c, e) => c.union(e), n), 340, 0.82);
-    el('hint').textContent = 'Follow the shell outward: each turn is a heavier compound. Drag to pan, pinch to zoom.';
+    // Open on the whole shell. The captions are small at this distance, but the
+    // shape is the point of the first glance and pinching in reads any of them.
+    frame(cy.elements(), 340, 0.40);
+    el('hint').textContent = 'Distance from the centre follows ring count. Pinch to read a name, tap a compound to break it down.';
   }, 0.5);
   frame(cy.elements(), 0, 0.5);
   sheet(null);
