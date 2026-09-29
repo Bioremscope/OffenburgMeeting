@@ -202,18 +202,29 @@ function jitter01(seed, i) {
    stay evenly spread instead of bunching up near the middle. */
 function spiral(origin, n, opts) {
   opts = opts || {};
-  const arc = opts.arc || 140, step = opts.step || 11;
+  const growth = opts.growth || 1.08;          // radius multiplier per node
+  const turn = opts.turn || (82 * Math.PI / 180);
   const W = (cy && cy.width()) || 390, H = (cy && cy.height()) || 560;
   const squeeze = Math.max(0.5, Math.min(1, W / H));
   const out = [];
-  let r = opts.minR || 112;
-  let a = opts.axis !== undefined ? opts.axis : -Math.PI / 4;
+  let r = opts.minR || 125;
+  let a = opts.axis !== undefined ? opts.axis : (-40 * Math.PI / 180);
   for (let i = 0; i < n; i++) {
     out.push({ x: origin.x + squeeze * r * Math.cos(a), y: origin.y + r * Math.sin(a), a });
-    a += arc / r;
-    r += step;
+    a += turn;
+    r *= growth;
   }
   return out;
+}
+
+/* Captions radiate outward from the centre like the numbers on a dial. Hanging
+   every caption below its bead is what made the shell unreadable: neighbours
+   sit side by side, so their captions sit side by side too. Pushing each one
+   along its own radius separates them for free. */
+function labelSide(x, y) {
+  const m = Math.hypot(x, y) || 1, ux = x / m, uy = y / m;
+  if (Math.abs(ux) >= Math.abs(uy)) return { lh: ux > 0 ? 'right' : 'left' };
+  return { lv: uy > 0 ? 'bottom' : 'top' };
 }
 
 function fan(origin, axis, n, opts) {
@@ -280,6 +291,10 @@ function styleJson() {
     { selector: 'node[mono=1]', style: { 'font-family': 'IBM Plex Mono, ui-monospace, monospace', 'font-size': 12 } },
     { selector: 'node[italic=1]', style: { 'font-style': 'italic' } },
     { selector: 'node[kind="more"]', style: { 'shape': 'round-rectangle', 'font-size': 12 } },
+    { selector: 'node[wide=1]', style: { 'text-max-width': 104 } },
+    { selector: 'node[lh="right"]', style: { 'text-halign': 'right', 'text-valign': 'center', 'text-margin-x': 8, 'text-margin-y': 0 } },
+    { selector: 'node[lh="left"]', style: { 'text-halign': 'left', 'text-valign': 'center', 'text-margin-x': -8, 'text-margin-y': 0 } },
+    { selector: 'node[lv="top"]', style: { 'text-valign': 'top', 'text-margin-y': -6 } },
     { selector: 'node[?expandable]', style: { 'border-color': edge } },
     { selector: 'node.focus', style: { 'border-width': 4, 'border-color': accent } },
     { selector: 'edge', style: {
@@ -295,7 +310,7 @@ function styleJson() {
    graph, is untouched. */
 function ringSize(r) {
   const n = Math.min(Math.max(r || 2, 2), 6);
-  return 34 + (n - 2) * 6.5;          // 2 rings -> 34px, 6 rings -> 60px
+  return 26 + (n - 2) * 10.5;         // 2 rings -> 26px, 6 rings -> 68px
 }
 
 function def(id, kind, label, extra) {
@@ -398,6 +413,11 @@ function expand(node, opts) {
   const add = [];
   defs.forEach((d, i) => {
     d.data.axis = pos[i].a;
+    if (o.shell) {
+      d.data.wide = 1;
+      const side = labelSide(pos[i].x - origin.x, pos[i].y - origin.y);
+      if (side.lh) d.data.lh = side.lh; else d.data.lv = side.lv;
+    }
     add.push(Object.assign({}, d, { position: { x: pos[i].x, y: pos[i].y } }));
     add.push({ group: 'edges', data: {
       id: 'x' + id + '>' + d.data.id, source: id, target: d.data.id,
@@ -566,9 +586,15 @@ function renderIndex() {
     if (n.data('kind') === 'pah') { location.hash = '#' + n.data('slug'); return; }
     if (n.data('kind') !== 'hub') return;
     if (open.has('hub')) { collapse('hub'); sheet(null); frame(cy.elements(), 300, 0.5); return; }
-    expand(n, { shell: 1, minR: 112, arc: 140, step: 11, axis: -Math.PI / 4 });
+    expand(n, { shell: 1, minR: 125, growth: 1.08, turn: 82 * Math.PI / 180, axis: -40 * Math.PI / 180 });
     cy.nodes().ungrabify();
-    frame(cy.elements(), 320, 0.8);
+    // Open on the tight centre of the shell rather than on the whole of it.
+    // Sixteen captions cannot be legible at once on a phone, so the view starts
+    // where the light compounds are, at a readable size, and the shell visibly
+    // continues off-screen — which is its own invitation to follow it outward.
+    const inner = (kids.get('hub') || []).slice(0, 8).map(i => cy.getElementById(i));
+    frame(inner.reduce((c, e) => c.union(e), n), 340, 0.82);
+    el('hint').textContent = 'Follow the shell outward: each turn is a heavier compound. Drag to pan, pinch to zoom.';
   }, 0.5);
   frame(cy.elements(), 0, 0.5);
   sheet(null);
