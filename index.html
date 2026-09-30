@@ -394,8 +394,26 @@ function childrenOf(node) {
       slug: p.slug, rings: p.rings, size: ringSize(p.rings) })), cap: 99 };
   }
   if (kind === 'pah') {
+    /* The first attack comes first, literally: the enzymes KEGG annotates on
+       reactions that consume the compound itself. They are drawn before the
+       products and are never subject to the product cap — for the six curated
+       PAHs this is the enzyme a reader looks for on sight (nahAc), and for the
+       other ten its absence is the compound not being in KEGG at all. */
+    const enz = [];
+    const seen = new Set();
+    (P.first_attack || []).forEach(r => (r.ecs || []).forEach(ec => {
+      if (seen.has(ec)) return;
+      seen.add(ec);
+      const m = ecIndex.get(ec);
+      enz.push(def(nid(id, 'enz', ec), 'enzyme', (m && m.symbol) || ec.replace('ec:', 'EC '), {
+        ec, first: 1,
+        italic: m && m.symbol && !m.symbol.startsWith('EC ') ? 1 : 0,
+        enzyme_name: (m && m.enzyme_name) || '', total: (m && m.total) || 0,
+        expandable: (m && m.head.length) ? 1 : 0,
+      }));
+    }));
     const all = P.steps.filter(s => s.generation === 1);
-    return { all: all.map(s => metDef(id, s)), cap: FIRST_GEN_CAP };
+    return { all: enz.concat(all.map(s => metDef(id, s))), cap: FIRST_GEN_CAP + enz.length };
   }
   if (kind === 'met') {
     const out = [];
@@ -602,6 +620,11 @@ function sheet(node) {
       + `<p>The products nearest the compound are the ones the route carries on
            from; the ones furthest out are where it stops. Same direction as the
            shell you came in on.</p>`
+      + (P.kegg_compound_id
+        ? `<p>KEGG curates ${esc(P.name)} as a compound and annotates
+             <b>${(P.first_attack || []).length}</b> reaction${(P.first_attack || []).length === 1 ? '' : 's'}
+             that consume it. Those enzymes open with the products, purple, ahead of them.</p>`
+        : `<div class="wall"><b>${esc(P.name)} is not a KEGG compound.</b> The pathway maps do not carry the molecule itself, so there is no annotated first attack to compare the prediction against — the gap opens before the first product, not after it.</div>`)
       + (c.in_kegg
         ? `<p class="tapnote">Tap the compound to open its first attack.</p>`
         : `<div class="wall"><b>Nothing to continue from.</b> No predicted product of ${esc(P.name)} matches a compound in the public PAH pathways, so no enzyme and no genome can be reached from its chemistry. Only the laboratory route remains.</div>`);
@@ -635,8 +658,14 @@ function sheet(node) {
            <p class="tapnote">Tap it to reveal the enzymes.</p>`
         : `<div class="wall"><b>The chain ends here.</b> This structure matches no compound in the curated PAH pathways. The prediction is chemically plausible and evidentially unsupported, so no enzyme and no organism follow from it.</div>`);
   } else if (d.kind === 'enzyme') {
-    body = head(esc(d.label), 'Enzyme')
+    const rxns = d.first
+      ? (P.first_attack || []).filter(r => (r.ecs || []).includes(d.ec)) : [];
+    body = head(esc(d.label), d.first ? 'Enzyme · the first attack' : 'Enzyme')
       + `<p>${esc(d.enzyme_name)}</p><p class="mono">${esc(String(d.ec).replace('ec:', 'EC '))}</p>`
+      + (rxns.length
+        ? `<p>KEGG annotates this on the reaction that consumes ${esc(P.name)} itself.</p>`
+          + rxns.map(r => `<p class="mono">${esc(r.reaction.replace('rn:', ''))} · ${esc(r.definition)}</p>`).join('')
+        : '')
       + (d.total
         ? `<p>Carried by <b>${d.total}</b> sequenced genera in KEGG.</p>
            <p class="tapnote">Tap it to see them.</p>`
