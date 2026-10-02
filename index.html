@@ -130,6 +130,20 @@ svg.mol ellipse{opacity:.2}
 .wall b{color:var(--stop)}
 .tapnote{font-size:14px; color:var(--accent); margin-top:9px; font-weight:500}
 .loading{margin:auto; color:var(--muted); font-size:13.5px; padding:40px}
+[hidden]{display:none !important}
+.srclink{margin-left:auto; font-size:14px; color:var(--accent); text-decoration:none;
+  font-weight:500; white-space:nowrap}
+.doc{flex:1; min-height:0; overflow-y:auto; background:var(--card);
+  padding:16px 16px calc(26px + env(safe-area-inset-bottom, 0px))}
+.doc h2{font:600 13px/1 var(--body); letter-spacing:.08em; text-transform:uppercase;
+  color:var(--muted); margin:22px 0 9px}
+.doc h2:first-child{margin-top:0}
+.doc p{margin:0 0 11px; font-size:15px; line-height:1.6}
+.doc ul{margin:0 0 11px; padding-left:17px}
+.doc li{font-size:15px; line-height:1.55; margin-bottom:9px}
+.doc a{color:var(--accent); word-break:break-word}
+.doc .note{background:var(--accent-soft); border-radius:7px; padding:11px 12px;
+  font-size:14px; line-height:1.55; margin:0 0 11px}
 </style>
 
 <div class="bar">
@@ -140,9 +154,65 @@ svg.mol ellipse{opacity:.2}
 </div>
 
 <div class="legend" id="legend"></div>
-<div class="stage"><div id="cy"></div><div class="structcard" id="structcard" hidden></div></div>
+<div class="stage" id="stage"><div id="cy"></div><div class="structcard" id="structcard" hidden></div></div>
 <div class="hint" id="hint">Tap a node to open it. Tap it again to close.</div>
 <div class="sheet" id="sheet"><p class="loading">Loading the snapshot…</p></div>
+<div class="doc" id="doc" hidden>
+  <ul>
+    <li><b>US EPA priority pollutants.</b>
+      Priority Pollutant List, 40 CFR Part 423, Appendix A.
+      <a href="https://www.epa.gov/eg/toxic-and-priority-pollutants-under-clean-water-act">epa.gov/eg/toxic-and-priority-pollutants-under-clean-water-act</a>
+      &middot; Keith LH. The Source of U.S. EPA&rsquo;s Sixteen PAH Priority Pollutants.
+      <i>Polycyclic Aromatic Compounds</i> 2015;35(2&ndash;4):147&ndash;160.
+      <a href="https://doi.org/10.1080/10406638.2014.892886">doi:10.1080/10406638.2014.892886</a></li>
+    <li><b>PubChem.</b>
+      Kim S, Chen J, Cheng T, et al. PubChem 2025 update.
+      <i>Nucleic Acids Research</i> 2025;53(D1):D1516&ndash;D1525.
+      <a href="https://doi.org/10.1093/nar/gkae1059">doi:10.1093/nar/gkae1059</a></li>
+    <li><b>ChEBI.</b>
+      <a href="https://www.ebi.ac.uk/chebi/">ebi.ac.uk/chebi</a></li>
+    <li><b>KEGG.</b>
+      Kanehisa M, Goto S. KEGG: Kyoto Encyclopedia of Genes and Genomes.
+      <i>Nucleic Acids Research</i> 2000;28(1):27&ndash;30.
+      <a href="https://www.genome.jp/kegg/">genome.jp/kegg</a></li>
+    <li><b>EAWAG-BBD.</b>
+      Gao J, Ellis LBM, Wackett LP. The University of Minnesota
+      Biocatalysis/Biodegradation Database: improving public access.
+      <i>Nucleic Acids Research</i> 2010;38(Database issue):D488&ndash;D491.
+      <a href="https://doi.org/10.1093/nar/gkp771">doi:10.1093/nar/gkp771</a> &middot;
+      <a href="https://eawag-bbd.ethz.ch">eawag-bbd.ethz.ch</a></li>
+    <li><b>enviPath.</b>
+      Wicker J, Lorsbach T, G&uuml;tlein M, Schmid E, Latino D, Kramer S, Fenner K.
+      enviPath &mdash; the environmental contaminant biotransformation pathway resource.
+      <i>Nucleic Acids Research</i> 2016;44(D1):D502&ndash;D508.
+      <a href="https://doi.org/10.1093/nar/gkv1229">doi:10.1093/nar/gkv1229</a> &middot;
+      <a href="https://envipath.org">envipath.org</a></li>
+    <li><b>RDKit.</b>
+      <a href="https://www.rdkit.org">rdkit.org</a></li>
+    <li><b>OPSIN.</b>
+      <a href="https://github.com/dan2097/opsin">github.com/dan2097/opsin</a></li>
+    <li><b>Cytoscape.js.</b>
+      Franz M, Lopes CT, Huck G, Dong Y, Sumer O, Bader GD. Cytoscape.js: a graph
+      theory library for visualisation and analysis.
+      <i>Bioinformatics</i> 2016;32(2):309&ndash;311.
+      <a href="https://doi.org/10.1093/bioinformatics/btv557">doi:10.1093/bioinformatics/btv557</a></li>
+  </ul>
+
+  <h2>This page</h2>
+  <p>Companion to the poster <i>Prediction of PAH Degradation in Bioremediation
+     Research: A Rule-Based Cheminformatics Analysis</i>, presented by
+     A. Yaz&#305;c&#305;o&#287;lu and S. Ciesielski at the Circular Bioeconomy
+     Symposium, Offenburg, 13&ndash;14 October 2026. Department of Environmental
+     Biotechnology, University of Warmia and Mazury in Olsztyn, Poland.</p>
+  <p>Snapshot of October 2026. The figures on the poster and the numbers on this
+     page are generated from one script against one dataset, so they agree by
+     construction; if you are reading this after the symposium, the analysis may
+     have moved on.</p>
+
+  <h2>Use</h2>
+  <p>These sources are used here for academic research only.</p>
+</div>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.4/cytoscape.min.js" integrity="sha384-H3uzGzTfGHUAumB8+s4GEdfFwzAceN9wCCndN8AXubWKFIPuBSWKKtWDx7RhSf/z" crossorigin="anonymous"></script>
 <script>
@@ -175,6 +245,20 @@ const v = n => getComputedStyle(document.documentElement).getPropertyValue(n).tr
 const el = id => document.getElementById(id);
 
 let INDEX = null, P = null, cy = null, ecIndex = new Map();
+
+/* The reaction a product came from, named in this project's own vocabulary.
+   The rule identifiers of the reference system are deliberately not carried
+   in the published data; the sources page credits where the chemistry came
+   from. */
+const MECHANISM = {
+  dioxygenation: 'Ring dioxygenation',
+  aromatic_monooxygenation: 'Aromatic monooxygenation',
+  dehydrogenation: 'Dehydrogenation',
+  ring_alkene_dihydroxylation: 'Ring-alkene dihydroxylation',
+  aliphatic_hydroxylation: 'Aliphatic hydroxylation',
+  ortho_quinone: 'ortho-Quinone formation',
+  meso_quinone: 'meso-Quinone formation',
+};
 const cache = {};
 const kids = new Map();     // node id -> [child ids], recorded when it blooms
 const open = new Set();     // node ids whose children are on screen
@@ -375,7 +459,7 @@ function metDef(parentId, s) {
   return def(nid(parentId, 'met', s.product_id), 'met', caption, {
     in_kegg: s.in_kegg ? 1 : 0, mono: s.in_kegg ? 0 : 1,
     iso_n: sibs.length,
-    product_id: s.product_id, generation: s.generation, rule_name: s.rule_name,
+    product_id: s.product_id, generation: s.generation, mechanism: s.mechanism,
     parent_pid: s.parent_id,
     formula: s.formula || '', svg: s.svg || '', kegg_name: s.kegg_name || '',
     skeleton: s.skeleton || '', name: s.name || '', name_source: s.name_source || '',
@@ -624,7 +708,7 @@ function sheet(node) {
       + (P.kegg_compound_id
         ? `<p>KEGG curates ${esc(P.name)} as a compound and annotates
              <b>${(P.first_attack || []).length}</b> reaction${(P.first_attack || []).length === 1 ? '' : 's'}
-             that consume it. Those enzymes open with the products, purple, ahead of them.</p>`
+             that consume${(P.first_attack || []).length === 1 ? 's' : ''} it. Those enzymes open with the products, purple, ahead of them.</p>`
         : `<div class="wall"><b>${esc(P.name)} is not a KEGG compound.</b> The pathway maps do not carry the molecule itself, so there is no annotated first attack to compare the prediction against — the gap opens before the first product, not after it.</div>`)
       + (c.in_kegg
         ? `<p class="tapnote">Tap the compound to open its first attack.</p>`
@@ -651,7 +735,7 @@ function sheet(node) {
     body = head(esc(d.kegg_name || d.name || 'Unnamed structure'),
                 'Predicted metabolite · generation ' + d.generation)
       + `<p class="mono">${formulaHtml(d.formula)}${d.skeleton ? ' · ' + esc(d.skeleton) : ''}</p>`
-      + `<p class="mono">${esc(d.rule_name)}</p><div class="badges">${badges}</div>`
+      + `<p class="mono">${esc(MECHANISM[d.mechanism] || d.mechanism || '')}</p><div class="badges">${badges}</div>`
       + strip
       + (d.in_kegg
         ? `<p>Public annotation curates this structure, so the route carries on:
@@ -717,7 +801,26 @@ function init(elements, onNodeTap, floor) {
   cy.on('tap', e => { if (e.target === cy) { sheet(null); structCard(null); frame(cy.elements(), 300, floor); } });
 }
 
+/* The sources page is a document, not a graph: it replaces the canvas rather
+   than sharing it, so the reading column gets the whole screen. */
+function graphView(on) {
+  ['legend', 'stage', 'hint', 'sheet'].forEach(id => { el(id).hidden = !on; });
+  el('doc').hidden = on;
+}
+
+function renderSources() {
+  P = null;
+  structCard(null);
+  el('back').hidden = false;
+  el('observed').hidden = true;
+  el('title').textContent = 'Sources';
+  el('tag').textContent = '';
+  graphView(false);
+  el('doc').scrollTop = 0;
+}
+
 function renderIndex() {
+  graphView(true);
   P = null;
   structCard(null);
   el('back').hidden = true;
@@ -747,6 +850,7 @@ function renderIndex() {
 }
 
 async function renderPah(slug) {
+  graphView(true);
   try { P = await load('pah/' + slug + '.json'); }
   catch { location.hash = ''; return; }
   ecIndex = new Map((P.ecs || []).map(e => [e.ec, e]));
@@ -819,13 +923,15 @@ function toggleObserved(btn) {
 
 /* ── boot ─────────────────────────────────────────────────────────────── */
 el('legend').innerHTML = LEGEND.map(([k, label]) =>
-  `<span><i style="background:${GRASS[k].color}"></i>${esc(label)}</span>`).join('');
+  `<span><i style="background:${GRASS[k].color}"></i>${esc(label)}</span>`).join('')
+  + '<a class="srclink" href="#sources">Sources</a>';
 el('back').addEventListener('click', () => { location.hash = ''; });
 el('structcard').addEventListener('click', () => structCard(null));
 el('observed').addEventListener('click', e => toggleObserved(e.currentTarget));
 
 function route() {
   const slug = location.hash.replace(/^#\/?/, '').trim();
+  if (slug === 'sources') { renderSources(); return; }
   if (slug && INDEX.pahs.some(p => p.slug === slug)) renderPah(slug);
   else renderIndex();
 }
